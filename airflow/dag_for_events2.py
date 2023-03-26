@@ -1,5 +1,3 @@
-#dag for events2
-
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
@@ -17,12 +15,64 @@ default_args = {
 }
 
 dag = DAG(
-    'dag_for_events',
+    'dag_for_events123',
     default_args=default_args,
     schedule_interval=None
 )
 
 def api_to_text():
+    import requests
+    from datetime import datetime
+
+    url = "https://realtor.p.rapidapi.com/properties/v3/list"
+
+    payload = {
+        "limit": 200,
+        "offset": 0,
+        "baths": {"min": 3},
+        "list_price": {
+            "max": 900,
+            "min": 200
+        },
+        "beds": {
+            "max": 3,
+            "min": 1
+        },
+        "cats": True,
+        "dogs": True,
+        "state_code": "GA",
+        "status": ["for_rent"],
+        "type": ["condos", "condo_townhome_rowhome_coop", "condo_townhome", "townhomes", "duplex_triplex", "single_family", "multi_family", "apartment", "condop", "coop"],
+        "sort": {
+            "direction": "desc",
+            "field": "list_date"
+        }
+    }
+    headers = {
+        "content-type": "application/json",
+        "X-RapidAPI-Key": " ",
+        "X-RapidAPI-Host": "realtor.p.rapidapi.com"
+    }
+
+    response = requests.request("POST", url, json=payload, headers=headers)
+
+    print(response.text)
+
+    now = datetime.now()
+    date_str = now.strftime('%Y-%m-%d_%H-%M-%S')
+
+    filename = f'api_call_{date_str}.txt'
+
+    with open(filename, "w") as f:
+        f.write(response.text)
+
+api_to_text_task = PythonOperator(
+    task_id='api_to_text',
+    python_callable=api_to_text,
+    dag=dag
+)
+
+def text_to_csv():
 
     import json
     import csv
@@ -84,64 +134,6 @@ def api_to_text():
             writer.writerow(row)
     pass
 
-api_to_text_task = PythonOperator(
-    task_id='api_to_text',
-    python_callable=api_to_text,
-    dag=dag
-)
-
-def text_to_csv():
-    import requests
-    from datetime import datetime
-
-    import requests
-    import pandas
-    import json
-
-    url = "https://realtor.p.rapidapi.com/properties/v3/list"
-
-    payload = {
-    "limit": 200,
-    "offset": 0,
-    "baths": {"min": 3},
-    "list_price": {
-    "max": 900,
-    "min": 200
-    },
-    "beds": {
-    "max": 3,
-    "min": 1
-    },
-    "cats": True,
-    "dogs": True,
-        "state_code": "GA",
-    "status": ["for_rent"],
-    "type": ["condos", "condo_townhome_rowhome_coop", "condo_townhome", "townhomes", "duplex_triplex", "single_family", "multi_family", "apartment", "condop", "coop"],
-    "sort": {
-    "direction": "desc",
-    "field": "list_date"
-    }
-    }
-    headers = {
-    "content-type": "application/json",
-    "X-RapidAPI-Key": " ", #api key
-    "X-RapidAPI-Host": "realtor.p.rapidapi.com"
-    }
-
-    response = requests.request("POST", url, json=payload, headers=headers)
-
-    print(response.text)
-
-    now = datetime.now()
-    date_str = now.strftime('%Y-%m-%d_%H-%M-%S')
-
-    filename = f'api_call_{date_str}.txt'
-
-    with open(filename, "w") as f:
-        f.write(response.text)
-
-    pass
-
 text_to_csv_task = PythonOperator(
     task_id='text_to_csv',
     python_callable=text_to_csv,
@@ -155,10 +147,10 @@ def csv_to_postgresql():
     import psycopg2
 
     # database connection parameters
-    DB_HOST = "ip address or local host" #insert ip
-    DB_NAME = "database name" #database name
-    DB_USER = "username" #database user
-    DB_PASS = "password" #database pass
+    DB_HOST = " "
+    DB_NAME = " "
+    DB_USER = " "
+    DB_PASS = " "
 
     # file name pattern to match for the CSV file
     FILE_NAME_PATTERN = "rental_proporties_ga_*.csv"
@@ -200,4 +192,4 @@ csv_to_postgresql_task = PythonOperator(
     dag=dag
 )
 
-api_to_text_task >> text_to_csv_task >> csv_to_postgresql_task 
+api_to_text_task >> text_to_csv_task >> csv_to_postgresql_task

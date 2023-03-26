@@ -20,3 +20,5 @@ The objective was to have users able to rental listings via web application. To 
 
 4. React Application
    - React - this is also available in the code. Here users can view and delete listings.
+
+<img src="https://github.com/dsilverio123/Data-Renter-Listings-Project/blob/main/0_TDN2SnAd_1mppT6J.png?raw=true" alt="some_text">
